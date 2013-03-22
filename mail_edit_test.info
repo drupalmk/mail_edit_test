@@ -1,0 +1,5 @@
+name = Mail Edit Test
+description = Sample email template overriding
+core = 7.x
+package = Samples
+dependencies[] = mail_edit

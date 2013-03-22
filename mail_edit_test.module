@@ -1,0 +1,114 @@
+<?php
+
+/**
+ * @file
+ * Provides sample email send action with overriding templates.
+ *
+ */
+
+/*
+ * Email key
+ */
+define('MAIL_EDIT_TEST_EMAIL_KEY', 'mail_edit_test_email');
+
+/**
+ * Implements hook_menu()
+ */
+function mail_edit_test_menu() {
+    $items = array();
+    $items['node/%node/send_mail'] = array(
+        'title' => 'Send node by email',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('mail_edit_test_form', 1),
+        'access arguments' => array('access content'),
+        'type' => MENU_LOCAL_TASK,
+        'weight' => 999,
+
+    );
+    return $items;
+}
+
+function mail_edit_test_form($form, &$form_state) {
+    if (empty($form_state['build_info']['args'])) {
+        drupal_not_found();
+        return array();
+    }
+    $form = array();
+    $form['recipient'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Recipients email address'),
+        '#required' => TRUE,
+        '#description' => t('Seperate emails by comma'),
+    );
+    $form['submit'] = array(
+        '#type' => 'submit',
+        '#value' => t('Submit'),
+    );
+    return $form;
+}
+
+function mail_edit_test_form_validate($form, &$form_state) {
+    $emails = explode(',', $form_state['values']['recipient']);
+
+    foreach($emails as $email) {
+        if (! valid_email_address($email)) {
+            form_set_error('recipient', t('You must provide valid email address'));
+            break;
+        }
+    }
+
+}
+
+function mail_edit_test_form_submit($form, &$form_state) {
+    $node = $form_state['build_info']['args'][0];
+    _mail_edit_test_email_sendEmail($node, $form_state['values']['recipient']);
+}
+
+function _mail_edit_test_email_sendEmail($node, $to) {
+    $params['node'] = $node;
+    $language = $node->language;
+    $mail = drupal_mail('mail_edit_test', MAIL_EDIT_TEST_EMAIL_KEY, $to, $language, $params);
+    return empty($mail) ? NULL : $mail['result'];
+}
+
+/**
+ * Implements hook_mail()
+ */
+function mail_edit_test_mail($key, &$message, $params) {
+    switch ($key) {
+        case MAIL_EDIT_TEST_EMAIL_KEY:
+            $variables = array('node' => $params['node']);
+            $message['headers']['Content-Type'] = 'text/html; charset=UTF-8;';
+            $message['subject'] = drupal_html_to_text(_mail_edit_test_text($key . '_subject', $variables));
+            $message['body'][] = drupal_wrap_mail(_mail_edit_test_text($key . '_body', $variables));
+            break;
+    }
+}
+
+function _mail_edit_test_text($email_key, array $variables, $replace = TRUE) {
+    $text = '';
+    $node = $variables['node'];
+    $lng_options = array('langcode' => $node->language);
+    switch($email_key) {
+        case MAIL_EDIT_TEST_EMAIL_KEY . '_subject':
+            $text .= t('Node content of [node:title]', array(), $lng_options);
+            break;
+        case MAIL_EDIT_TEST_EMAIL_KEY . '_body':
+            $body = <<<TXT
+
+    Node title: [node:title]
+
+    [node:body]
+
+    See it at @url
+TXT;
+
+            $text .= t($body, array('@url' => url('node/' . $node->nid, array('absolute' => TRUE))), $lng_options);
+            break;
+    }
+
+    if ($replace) {
+        return token_replace($text, $variables, $lng_options);
+    }
+    return $text;
+}
