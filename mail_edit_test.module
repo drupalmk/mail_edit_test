@@ -93,7 +93,6 @@ function _mail_edit_test_text($email_key, $language, array $variables, $replace 
     switch($email_key) {
         case MAIL_EDIT_TEST_EMAIL_KEY . '_subject':
             $text = t('Node content of [node:title]');
-            #$text = 'Node content of [node:title]';
             break;
         case MAIL_EDIT_TEST_EMAIL_KEY . '_body':
             $body = <<<TXT
