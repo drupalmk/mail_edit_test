@@ -90,11 +90,10 @@ function mail_edit_test_mail($key, &$message, $params) {
 
 function _mail_edit_test_text($email_key, $language, array $variables, $replace = TRUE) {
     $text = '';
-    $node = $variables['node'];
-    $lng_options = array('langcode' => $language);
     switch($email_key) {
         case MAIL_EDIT_TEST_EMAIL_KEY . '_subject':
-            $text .= t('Node content of [node:title]', array(), $lng_options);
+            $text = t('Node content of [node:title]');
+            #$text = 'Node content of [node:title]';
             break;
         case MAIL_EDIT_TEST_EMAIL_KEY . '_body':
             $body = <<<TXT
@@ -105,13 +104,16 @@ function _mail_edit_test_text($email_key, $language, array $variables, $replace 
 
     See it at @url
 TXT;
-
-            $text .= t($body, array('@url' => url('node/' . $node->nid, array('absolute' => TRUE))), $lng_options);
+            if ($replace) {
+                $node = $variables['node'];
+                $text = t($body, array('@url' => url('node/' . $node->nid, array('absolute' => TRUE))));
+            } else {
+                $text = $body;
+            }
             break;
     }
-
     if ($replace) {
-        return token_replace($text, $variables, $lng_options);
+        return token_replace($text, $variables, array('langcode' => $language));
     }
     return $text;
 }

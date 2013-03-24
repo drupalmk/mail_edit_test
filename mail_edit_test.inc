@@ -2,6 +2,8 @@
 
 /**
  * Implements hook_mailkeys()
+ *
+ * @return array of pairs: email_key => label of emails available for overrides
  */
 function mail_edit_test_mailkeys() {
     return array(
