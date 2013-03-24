@@ -88,6 +88,25 @@ function mail_edit_test_mail($key, &$message, $params) {
     }
 }
 
+/**
+ * Implements hook_mail_alter()
+ *
+ * @param $message message array
+ */
+function mail_edit_test_mail_alter(&$message) {
+    dpm($message);
+    if (!$template = _mail_edit_load($message['id'], $message['language'])) {
+        return;
+    }
+    $options = array(
+        'language' => $message['language'],
+    );
+    $data['node'] = $message['params']['node'];
+    $message['subject'] = drupal_html_to_text(mail_edit_format($template['subject'], $data, $options));
+    $message['body'] = array();
+    $message['body'][] = mail_edit_format($template['body'], $data, $options);
+}
+
 function _mail_edit_test_text($email_key, $language, array $variables, $replace = TRUE) {
     $text = '';
     switch($email_key) {
@@ -101,14 +120,8 @@ function _mail_edit_test_text($email_key, $language, array $variables, $replace 
 
     [node:body]
 
-    See it at @url
+    See it at [node:url]
 TXT;
-            if ($replace) {
-                $node = $variables['node'];
-                $text = t($body, array('@url' => url('node/' . $node->nid, array('absolute' => TRUE))));
-            } else {
-                $text = $body;
-            }
             break;
     }
     if ($replace) {
