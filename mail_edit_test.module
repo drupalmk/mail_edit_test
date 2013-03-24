@@ -11,6 +11,8 @@
  */
 define('MAIL_EDIT_TEST_EMAIL_KEY', 'mail_edit_test_email');
 
+include_once __DIR__ .'/mail_edit_test.inc';
+
 /**
  * Implements hook_menu()
  */
@@ -78,17 +80,18 @@ function mail_edit_test_mail($key, &$message, $params) {
     switch ($key) {
         case MAIL_EDIT_TEST_EMAIL_KEY:
             $variables = array('node' => $params['node']);
+            $language = $params['node']->language;
             $message['headers']['Content-Type'] = 'text/html; charset=UTF-8;';
-            $message['subject'] = drupal_html_to_text(_mail_edit_test_text($key . '_subject', $variables));
-            $message['body'][] = drupal_wrap_mail(_mail_edit_test_text($key . '_body', $variables));
+            $message['subject'] = drupal_html_to_text(_mail_edit_test_text($key . '_subject', $language, $variables));
+            $message['body'][] = drupal_wrap_mail(_mail_edit_test_text($key . '_body', $language, $variables));
             break;
     }
 }
 
-function _mail_edit_test_text($email_key, array $variables, $replace = TRUE) {
+function _mail_edit_test_text($email_key, $language, array $variables, $replace = TRUE) {
     $text = '';
     $node = $variables['node'];
-    $lng_options = array('langcode' => $node->language);
+    $lng_options = array('langcode' => $language);
     switch($email_key) {
         case MAIL_EDIT_TEST_EMAIL_KEY . '_subject':
             $text .= t('Node content of [node:title]', array(), $lng_options);
