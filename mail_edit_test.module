@@ -10,7 +10,18 @@
  * Email key
  */
 define('MAIL_EDIT_TEST_EMAIL_KEY', 'mail_edit_test_email');
+/*
+ * Email subject ID
+ */
+define('MAIL_EDIT_TEST_SUBJECT', 1);
+/*
+ * Email body ID
+ */
+define('MAIL_EDIT_TEST_BODY', 2);
 
+/*
+ * Including Mail Editor API custom implementation
+ */
 include_once __DIR__ .'/mail_edit_test.inc';
 
 /**
@@ -51,14 +62,12 @@ function mail_edit_test_form($form, &$form_state) {
 
 function mail_edit_test_form_validate($form, &$form_state) {
     $emails = explode(',', $form_state['values']['recipient']);
-
     foreach($emails as $email) {
         if (! valid_email_address($email)) {
             form_set_error('recipient', t('You must provide valid email address'));
             break;
         }
     }
-
 }
 
 function mail_edit_test_form_submit($form, &$form_state) {
@@ -68,7 +77,8 @@ function mail_edit_test_form_submit($form, &$form_state) {
 
 function _mail_edit_test_email_sendEmail($node, $to) {
     $params['node'] = $node;
-    $language = $node->language;
+    $language = new stdClass;
+    $language->language = $node->language;
     $mail = drupal_mail('mail_edit_test', MAIL_EDIT_TEST_EMAIL_KEY, $to, $language, $params);
     return empty($mail) ? NULL : $mail['result'];
 }
@@ -81,9 +91,8 @@ function mail_edit_test_mail($key, &$message, $params) {
         case MAIL_EDIT_TEST_EMAIL_KEY:
             $variables = array('node' => $params['node']);
             $language = $params['node']->language;
-            $message['headers']['Content-Type'] = 'text/html; charset=UTF-8;';
-            $message['subject'] = drupal_html_to_text(_mail_edit_test_text($key . '_subject', $language, $variables));
-            $message['body'][] = drupal_wrap_mail(_mail_edit_test_text($key . '_body', $language, $variables));
+            $message['subject'] = drupal_html_to_text(_mail_edit_test_text(MAIL_EDIT_TEST_SUBJECT, $language, $variables));
+            $message['body'][] = drupal_wrap_mail(drupal_html_to_text(_mail_edit_test_text(MAIL_EDIT_TEST_BODY, $language, $variables)));
             break;
     }
 }
@@ -94,33 +103,39 @@ function mail_edit_test_mail($key, &$message, $params) {
  * @param $message message array
  */
 function mail_edit_test_mail_alter(&$message) {
-    dpm($message);
+    if ($message['id'] != 'mail_edit_test_' . MAIL_EDIT_TEST_EMAIL_KEY) {
+        return;
+    }
     if (!$template = _mail_edit_load($message['id'], $message['language'])) {
         return;
     }
-    $options = array(
-        'language' => $message['language'],
-    );
+    $options['language'] = $message['language'];
     $data['node'] = $message['params']['node'];
     $message['subject'] = drupal_html_to_text(mail_edit_format($template['subject'], $data, $options));
     $message['body'] = array();
-    $message['body'][] = mail_edit_format($template['body'], $data, $options);
+    $message['body'][] = drupal_wrap_mail(drupal_html_to_text(mail_edit_format($template['body'], $data, $options)));
 }
 
-function _mail_edit_test_text($email_key, $language, array $variables, $replace = TRUE) {
+/**
+ * @param $type int, element type (subject or body) @see MAIL_EDIT_TEST_SUBJECT, MAIL_EDIT_TEST_BODY
+ * @param $language
+ * @param array $variables
+ * @param bool $replace
+ * @return mixed|null|string
+ */
+function _mail_edit_test_text($type, $language, array $variables, $replace = TRUE) {
     $text = '';
-    switch($email_key) {
-        case MAIL_EDIT_TEST_EMAIL_KEY . '_subject':
+    switch($type) {
+        case MAIL_EDIT_TEST_SUBJECT:
             $text = t('Node content of [node:title]');
             break;
-        case MAIL_EDIT_TEST_EMAIL_KEY . '_body':
-            $body = <<<TXT
+        case MAIL_EDIT_TEST_BODY:
+            $text = <<<TXT
+Node title: [node:title]
 
-    Node title: [node:title]
+[node:body]
 
-    [node:body]
-
-    See it at [node:url]
+See it at [node:url]
 TXT;
             break;
     }

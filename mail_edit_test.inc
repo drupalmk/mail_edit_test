@@ -21,8 +21,8 @@ function mail_edit_test_mailkeys() {
  */
 function mail_edit_test_mail_edit_text($mailkey, $language) {
     $return = array();
-    $return['subject'] = _mail_edit_test_text($mailkey . '_subject', $language, array(), FALSE);
-    $return['body'] = _mail_edit_test_text($mailkey . '_body', $language, array(), FALSE);
+    $return['subject'] = _mail_edit_test_text(MAIL_EDIT_TEST_SUBJECT, $language, array(), FALSE);
+    $return['body'] = _mail_edit_test_text(MAIL_EDIT_TEST_BODY, $language, array(), FALSE);
     return $return;
 }
 
